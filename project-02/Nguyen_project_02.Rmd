@@ -1,0 +1,194 @@
+---
+title: "Mini-Project 02"
+output: 
+  html_document:
+    keep_md: true
+    toc: true
+    toc_float: true
+---
+
+# Data Visualization Project 02
+
+# Load libraries
+
+```{r  warning=FALSE, message=FALSE}
+library(tidyverse)
+library(sf)
+library(ggrepel)
+library(plotly)
+library(ggtext)
+library(ggpubr)
+```
+
+# Read data
+
+```{r warning=FALSE, message=FALSE}
+marathon <- read_csv("../data/marathon_results_2017.csv")
+flCounties <- st_read("../data/Florida_Counties/Florida_Counties.shp", quiet = T)
+usCities <- read_csv("../data/uscities.csv") 
+```
+
+# Data Wrangling
+
+```{r}
+# check data
+head(marathon)
+```
+
+I want to focus on Florida
+
+```{r}
+# get just people from Florida
+flMar <- filter(marathon, State == "FL") 
+# check data
+head(flMar)
+
+```
+
+```{r}
+# change variable names to make them easier for using
+names(flMar) <- make.names(names(flMar))
+# remove any rows that could have been duplicated
+flMar <- distinct(flMar)
+# select just columns I might use
+flMar <- select(flMar, c("Age", "M.F", "City", "State", "Official.Time", "Overall", "Gender"))
+```
+
+```{r}
+# check for NAs
+colSums(is.na(flMar))
+# check data
+flMar
+```
+
+This dataset will only be used to find the county a city is in
+
+```{r}
+# narrow dataset down to just Florida and needed columns
+flCities <- usCities %>% 
+  filter(state_id == "FL") %>% 
+  select(c("city", "county_name"))
+```
+
+```{r}
+# add county name to marathon data check for failed matches
+left_join(flMar, flCities, c("City" = "city")) %>% 
+  filter(is.na(county_name)) 
+```
+
+```{r}
+# Converting and fixing city names to match names in flCities
+flMar$City <- str_replace(flMar$City, "Saint", "St.")
+flMar$City <- str_replace(flMar$City, "St ", "St. ")
+flMar$City <- str_replace(flMar$City, " O ", " O' ")
+flMar$City <- str_replace(flMar$City, " Locka", "-locka")
+flMar$City <- str_replace(flMar$City, "Ft.", "Fort ")
+flMar$City <- str_replace(flMar$City, "Fort  ", "Fort ") # one fort had a extra space
+flMar$City <- str_replace(flMar$City, "Deland", "DeLand")
+flMar$City <- str_replace(flMar$City, "Augustime", "Augustine")
+```
+
+```{r}
+# check for failed matches again
+left_join(flMar, flCities, c("City" = "city")) %>% 
+  filter(is.na(county_name)) %>% 
+  group_by(City) %>% 
+  summarize(n = n())
+```
+
+These cities were not found in the flCities data. Due to time constraints and the small amount of these cities with missing counties, their county will not be manually found and added.
+
+```{r}
+# add counties to marathon data for rows with city matches
+flMarCounties <- inner_join(flMar, flCities, c("City" = "city"))
+# change county column name to match flCounties country column
+flMarCounties <- rename(flMarCounties,  "COUNTYNAME" = "county_name")
+flMarCounties
+```
+
+```{r}
+# make flCounties county capitalization match flMarCounties
+flCounties$COUNTYNAME <- str_to_title(flCounties$COUNTYNAME)
+# match this county name
+flCounties$COUNTYNAME <- replace(flCounties$COUNTYNAME, flCounties$COUNTYNAME == "Dade", "Miami-Dade")
+```
+
+```{r}
+# add the counties from the shapefile that had no runners and put a 0 for their number of runners.
+flMarCounties <- flMarCounties %>% 
+  group_by(COUNTYNAME) %>% 
+  summarise(n = n()) %>% 
+  right_join(flCounties, "COUNTYNAME") %>% 
+  mutate(n = ifelse(is.na(n), 0, n)) %>% 
+  select(c("COUNTYNAME", "n"))
+arrange(flMarCounties, desc(n))
+```
+
+# Data Visualizations
+
+```{r}
+ggplotly(ggplot(flMar) +
+  geom_boxplot(aes(M.F, Overall, fill = M.F, color = M.F)) + 
+  scale_fill_manual(values = c(F = "lightcoral", M = "lightskyblue"), guide = "none") + 
+  scale_color_manual(values = c(F = "Red", M = "Blue"), guide = "none") +
+  scale_y_reverse() + # also makes the numbers negative
+  labs(title = "<span style = 'color:Blue;'>Male</span> and <span style='color:Red;'>Female</span> Overall Rank for 2017 Boston Marathon Finishers from Florida") +
+  theme_minimal() +
+  theme(plot.title = element_markdown(), axis.title = element_blank(), axis.text.x = element_blank(), legend.position = "none"))
+```
+The best and worst finishers are similar for both genders, but on average males performed better.
+
+
+```{r warning = F}
+# get coordinates for county labeling
+flCountiesPoints <- st_centroid(flCounties)
+flCountiesPoints <- cbind(flCountiesPoints, st_coordinates(st_centroid(flCountiesPoints$geometry)))
+
+# filter just counties with over 20 finishers
+# and split into left and right side for finer control on map
+leftPoints <- filter(flCountiesPoints, COUNTYNAME %in% c("Hillsborough", "Pinellas", "Pasco"))
+rightPoints <- filter(flCountiesPoints, COUNTYNAME %in% c("Miami-Dade","Palm Beach", "Orange", "Broward", "Duval"))
+
+# spatial visualization
+merge(flCounties, flMarCounties, by = "COUNTYNAME") %>% 
+  ggplot() +
+    geom_sf(aes(fill = n),alpha=0.8, col="white") +
+    scale_fill_viridis_c(name = "") +
+    geom_text_repel(data = leftPoints, aes(x = X, y = Y, label = COUNTYNAME), nudge_x = -1.5, min.segment.length = 0) + 
+    geom_text_repel(data = rightPoints, aes(x = X, y = Y, label = COUNTYNAME), nudge_x = 1.5, min.segment.length = 0) + 
+    annotate("text", -Inf, Inf, label = "82 finishers", hjust = -6.55, vjust = 36.5, size = 3) +
+    labs(title = "2017 Boston Marathon Finishers by County in Florida", subtitle = "Counties with at least 20 finishers are labeled") +
+    theme_void() +
+    theme(plot.title = element_text(hjust = -4.3), plot.subtitle = element_text(hjust = -0.825), legend.position = "left")
+```
+It is interesting to see most finishers are from southeast Florida with a significant amount in central Florida, and Miami-Dade having a lot more than the rest.
+
+
+```{r}
+ggplot(flMar, aes(Age, Official.Time, color = M.F)) +
+  geom_point(alpha = 0.4) +
+  geom_smooth(method = "lm") +
+  scale_color_manual(values = c(F = "Red", M = "Blue"), guide_legend(title = "Gender")) +
+  stat_regline_equation(aes(label = after_stat(rr.label)), show.legend = F) +
+  labs(title = "Age vs Official Time of 2017 Boston Marathon Finishers from Florida") +
+  xlab("Age (Year)") +
+  ylab("Official Time (HH:MM:SS)") +
+  theme_minimal() +
+  theme(plot.title = element_markdown(hjust = 7.5))
+  
+```
+The correlation between age and the official time achieved is not strong. But the linear model does suggest that older people take longer to finish and more so for males.
+
+---
+
+# Report
+
+My process started started with choosing a dataset. I decided to go with the 2017 Boston Marathon Finishers because it has a good amount of data, multiple variables that I could use, and it has city and state data that could be combined with a shapefile to make a spatial visualization. The dataset was decently formatted and I did not have to do much cleaning. Main changes made were renaming the columns for easier use, creating a subset of just the finishers from Florida with the columns I was going to use, and checking for missing values, which my subset had none of. I was able to make my originally planned charts which were an interactive boxplot, a spatial visualization of Florida counties, and a scatterplot with a linear model.
+
+The interactive boxplot was the first graph I made. It was the gender of the finisher vs their overall rank. For this graph, I tried to keep it simple, so the only labels are the title and the rank values on the y axis. The title has colored words in it to match the gender for each boxplot. I also reversed the y axis, so that 0 is at the top. I think that this makes more sense as a rank closer to 0 is a better performance and I think better numbers should be at the top for a graph. One problem with this though is that hovering over the boxplot after making it interactive through `plotly`, shows a negative sign in front of the statistics for it. I could not find a solution for this, and I also had a problem where `hjust` was not working for this boxplot. However, the graph still looked fine and is able to clearly convey the information I choose from the dataset. The best and worst finishers are similar for both genders, but on average males performed better.
+
+My next graph, the spatial visualization was difficult to make work the way I wanted. It shows the number of finishers per county in Florida, and I labeled the counties with over 20 finishers. My main issue is that I have the city of the finisher from marathon dataset but not their county. So, I found a freely available dataset that has us cities and their counties. I filtered that data down to just Florida cities and did a left join on it with my marathon data to check for missing matches. A large number of failed matches were due to inconsistent spelling and typos in the city name for the marathon data. After fixing those, I did an inner join to get just the matches, as there was only a small amount of cities left with no counties found for it in the US cities dataset. Then I had to do column renaming and changing a city name so that I could merge it with shapefile for Florida counties. I grouped my data by counties and counting the number of occurrences of county and merged that into shapefile for the Florida counties. Finally, with that combined data, I was able to make the spatial visualization. Using it, I saw that most finishers are from southeast Florida with a significant amount in central Florida, and Miami-Dade having a lot more than the rest.
+	
+My final graph was a scatterplot of the age vs official time for the finishers. The points were colored by gender and I added a linear model for both as well as their R-squared value. This was easy to make through the cleaned data I made before this. My only difficulty was adding the R-squared value, and I used `stat_regline_equation` from the `ggpubr` package to make it easier. Also, to make it easier to see the points at cluttered areas, I lowered the alpha of the points. Contrary to my previous graphs, I kept the axis titles to help explain their value types as I thought they were less clear then the others and putting the value types in the title would make my already long title too long. This graph showed that the correlation between age and the official time achieved is not strong. But the linear model does suggest that older people take longer to finish and more so for males.
+
+Overall, for my graphs, I tried to keep them consistent. I removed any information I believed was unnecessary and repetitive. I kept the colors as consistent as I could. For both my boxplot and scatterplot that had gender in them, male was blue, and females were red. The only graph with different colors was the spatial visualization as it has a continuous variable, and I used the Viridis color palette for it, as it colors for it help show similarities and differences well without overemphasis.
