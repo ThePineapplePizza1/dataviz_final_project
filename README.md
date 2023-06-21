@@ -1,45 +1,35 @@
 # Data Visualization and Reproducible Research
 
-> Firstname Lastname. 
+> Henry Nguyen.
 
-Learn more about me in my [GitHub profile page](https://github.com/reiminer). 
+Learn more about me in my [GitHub profile page](https://github.com/ThePineapplePizza1).
 
-
-The following is a sample of products created during the _"Data Visualization and Reproducible Research"_ course.
-
+The following is a sample of products created during the *"Data Visualization and Reproducible Research"* course.
 
 ## Project 01
 
-In the `project_01/` folder you can find... _[add short description of your revised project here]_
+In the `project-01/` folder you can find my exploration of the World Cup matches. In it, I examine the attendance over time for the World Cup and for the final matches, I analyzed which side of the field tended to have more wins and the type of win: normal, extra time, or penalty shootout.
 
-**Sample data visualization:** 
+**Attendance data visualization:**
 
-_[include your favorite visualization from this project here]_
-<img src="https://github.com/reisanar/figs/raw/master/echarts.png" width="70%" height="70%">
-
+<img src="https://raw.githubusercontent.com/ThePineapplePizza1/dataviz_final_project/main/figures/wcAttendance.png"/>
 
 ## Project 02
 
-In this project, I explored ... _[short description of your revised project goes here]_ Find the code and report in the `project_02/` folder.
+In this project, I explored the 2017 Boston Marathon Finishers dataset. I focused on finishers from Florida. Visualizations were created for the number of finishers per county, a comparison between genders for the overall rank, and a linear model for age vs official time achieved. Find the code and report in the `project-02/` folder.
 
-**Sample data visualization:** 
+**County finishers data visualization:**
 
-_[include your favorite visualization from this project here]_
-<img src="https://raw.githubusercontent.com/reisanar/dataviz_final_project/main/figures/fl_higher_ed.png" width="80%" height="80%">
-
-(you can place your figures in the `figures/` folder and use the `![](path_to_picture)` option to add the pictures here)
-
+<img src="https://raw.githubusercontent.com/ThePineapplePizza1/dataviz_final_project/main/figures/flFinishers.png"/>
 
 ## Project 03
 
-In this project, I explored ... _[short description of the data visualizations you for this part of the project produced goes here]_
+In this project, I explored reproducing various visualizations given to me, with data about the climate at the Tampa International Airport in 2022 and concrete strength from the UCI Machine Learning repository. Some of the graphs I had to reproduce were density plots, scatter plots, and box plots.
 
-**Sample data visualization:** 
+**Concrete data visualization:**
 
-_[include your favorite visualization from this project here]_
-<img src="https://github.com/reisanar/figs/raw/master/concrete_density.png" width="80%" height="80%">
-
+<img src="https://raw.githubusercontent.com/ThePineapplePizza1/dataviz_final_project/main/figures/concrete.png"/>
 
 ### Moving Forward
 
-_Please add here a short reflection on what you learned and what you plan to continue exploring in terms of data visualization, data storytelling, reproducible research, and/or related topics._
+Through my projects, I have learned how to make better data visualizations by properly using things such as the layout, formatting, and colors used. I have also learned how to make my work reproducible by following good practices and using version control. Now, I can make a decent visualization and analyze it, but I cannot really tell a story with it, so moving forward, I would like to get better at data storytelling.
