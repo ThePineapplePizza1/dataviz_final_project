@@ -29,10 +29,10 @@ sample_n(weather_tpa, 4)
 ## # A tibble: 4 × 7
 ##    year month   day precipitation max_temp min_temp ave_temp
 ##   <dbl> <dbl> <dbl>         <dbl>    <dbl>    <dbl>    <dbl>
-## 1  2022    12     2           0         81       62     71.5
-## 2  2022     6     5           0         91       75     83  
-## 3  2022     2    22           0         87       67     77  
-## 4  2022     6    20           0.1       95       78     86.5
+## 1  2022     6     4          0.47       88       75     81.5
+## 2  2022    10    15          0          88       74     81  
+## 3  2022     6    15          0.11       95       78     86.5
+## 4  2022     4    11          0          85       62     73.5
 ```
 
 See https://www.reisanar.com/slides/relationships-models#10 for a reminder on how to use this type of dataset with the `lubridate` package for dates and times (example included in the slides uses data from 2016).
@@ -249,6 +249,7 @@ ggplot(tpa_clean, aes(x = precipitation, fill = wday(doy))) +
 ```
 
 ![](Nguyen_project_03_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
+
 Day of the week does not seem to really affect the amount of precipitation as expected.
 
 
@@ -294,9 +295,57 @@ new_concrete <- concrete %>%
 
 1. Explore the distribution of 2 of the continuous variables available in the dataset. Do ranges make sense? Comment on your findings.
 
+
+```r
+ggplot(new_concrete) +
+  geom_histogram(aes(Age))
+```
+
+```
+## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+```
+
+![](Nguyen_project_03_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
+
+It looks like most of the concrete was measured around a month or earlier after mixing. This makes sense to me, as I think it is good to check if the concrete strength is where it should be and if they are any problems early on.
+
+
+
+```r
+ggplot(new_concrete) +
+  geom_histogram(aes(Concrete_compressive_strength))
+```
+
+```
+## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+```
+
+![](Nguyen_project_03_files/figure-html/unnamed-chunk-17-1.png)<!-- -->
+
+The distribution is kind of normal. Which makes sense, as I think there is probably a certain strength that can be used for most things, with a weaker or stronger strength being used in more specialized cases.
+
+
 2. Use a _temporal_ indicator such as the one available in the variable `Age` (measured in days). Generate a plot similar to the one shown below. Comment on your results.
 
 <img src="https://github.com/reisanar/figs/raw/master/concrete_strength.png" width="80%" style="display: block; margin: auto;" />
+
+
+```r
+# one row with compressive strength of 2.331808 was being rounded down and got NA for its range
+new_concrete$strength_range[is.na(new_concrete$strength_range)] = "(2.33,21]"
+```
+
+
+```r
+ggplot(new_concrete, aes(as.factor(Age), Concrete_compressive_strength, fill = strength_range)) +
+  geom_boxplot() +
+  labs(x = "Age (in days)", y = "Compressive Strength (in MPa)", fill = "Strength Range") +
+  theme_minimal()
+```
+
+![](Nguyen_project_03_files/figure-html/unnamed-chunk-20-1.png)<!-- -->
+
+Old concretes seem stronger than new concretes, but most of the strongest concretes are around 30 to 100 days old. It looks like age has a stronger impact on the strength of newer concrete and as it settles, other factors impact the strength more.
 
 
 3. Create a scatterplot similar to the one shown below. Pay special attention to which variables are being mapped to specific aesthetics of the plot. Comment on your results. 
@@ -304,5 +353,15 @@ new_concrete <- concrete %>%
 <img src="https://github.com/reisanar/figs/raw/master/cement_plot.png" width="80%" style="display: block; margin: auto;" />
 
 
+```r
+ggplot(new_concrete, aes(Cement, Concrete_compressive_strength, size = Age, color = Water)) +
+  geom_point(alpha = 0.5) +
+  scale_color_viridis_c() +
+  labs(title = "Exploring Strength versus (Cement, Age, and Water)", caption = "Age is measured in days", y = "Strength") +
+  theme_minimal()
+```
 
+![](Nguyen_project_03_files/figure-html/unnamed-chunk-22-1.png)<!-- -->
+
+Stronger concretes seem to have less water and more cement in them. Most of the older concrete are around 40 in strength.
 

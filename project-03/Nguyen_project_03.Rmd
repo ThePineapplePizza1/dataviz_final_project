@@ -152,6 +152,7 @@ ggplot(tpa_clean, aes(x = precipitation, fill = wday(doy))) +
   theme_bw() +
   theme(axis.title = element_text(size = 17))
 ```
+
 Day of the week does not seem to really affect the amount of precipitation as expected.
 
 
@@ -195,11 +196,42 @@ new_concrete <- concrete %>%
 
 1. Explore the distribution of 2 of the continuous variables available in the dataset. Do ranges make sense? Comment on your findings.
 
+```{r}
+ggplot(new_concrete) +
+  geom_histogram(aes(Age))
+```
+
+It looks like most of the concrete was measured around a month or earlier after mixing. This makes sense to me, as I think it is good to check if the concrete strength is where it should be and if they are any problems early on.
+
+
+```{r}
+ggplot(new_concrete) +
+  geom_histogram(aes(Concrete_compressive_strength))
+```
+
+The distribution is kind of normal. Which makes sense, as I think there is probably a certain strength that can be used for most things, with a weaker or stronger strength being used in more specialized cases.
+
+
 2. Use a _temporal_ indicator such as the one available in the variable `Age` (measured in days). Generate a plot similar to the one shown below. Comment on your results.
 
 ```{r, echo = FALSE, out.width="80%", fig.align='center'}
 knitr::include_graphics("https://github.com/reisanar/figs/raw/master/concrete_strength.png")
 ```
+
+```{r}
+# one row with compressive strength of 2.331808 was being rounded down and got NA for its range
+new_concrete$strength_range[is.na(new_concrete$strength_range)] = "(2.33,21]"
+```
+
+```{r}
+ggplot(new_concrete, aes(as.factor(Age), Concrete_compressive_strength, fill = strength_range)) +
+  geom_boxplot() +
+  labs(x = "Age (in days)", y = "Compressive Strength (in MPa)", fill = "Strength Range") +
+  theme_minimal()
+  
+```
+
+Old concretes seem stronger than new concretes, but most of the strongest concretes are around 30 to 100 days old. It looks like age has a stronger impact on the strength of newer concrete and as it settles, other factors impact the strength more.
 
 
 3. Create a scatterplot similar to the one shown below. Pay special attention to which variables are being mapped to specific aesthetics of the plot. Comment on your results. 
@@ -208,6 +240,13 @@ knitr::include_graphics("https://github.com/reisanar/figs/raw/master/concrete_st
 knitr::include_graphics("https://github.com/reisanar/figs/raw/master/cement_plot.png")
 ```
 
+```{r fig.height = 7, fig.width = 7}
+ggplot(new_concrete, aes(Cement, Concrete_compressive_strength, size = Age, color = Water)) +
+  geom_point(alpha = 0.5) +
+  scale_color_viridis_c() +
+  labs(title = "Exploring Strength versus (Cement, Age, and Water)", caption = "Age is measured in days", y = "Strength") +
+  theme_minimal()
+```
 
-
+Stronger concretes seem to have less water and more cement in them. Most of the older concrete are around 40 in strength.
 
